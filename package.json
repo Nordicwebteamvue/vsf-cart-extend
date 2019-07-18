@@ -1,0 +1,9 @@
+{
+  "name": "vsf-cart-extend",
+  "version": "0.1.0",
+  "description": "Fetch shipping incl. tax from Magento 2",
+  "keywords": ["vsf", "vue-storefront"],
+  "repository": "https://github.com/kodbruket/vsf-cart-extend",
+  "homepage": "http://kodbruket.se",
+  "author": "Andreas Karlsson <andreas@kodbruket.se>"
+}
