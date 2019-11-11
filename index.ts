@@ -356,6 +356,33 @@ export const cartExtend = {
                 }
                 commit(types.CART_SET_ITEMS_HASH, getters.getCurrentCartHash) // update the cart hash
               }
+
+              // Re-mapping server items to client items one more time.
+              // Delete client items if server items were deleted - freegift or backend automatically deleted item to quote.
+              await TaskQueue.execute({
+                url: config.cart.pull_endpoint, // sync the cart
+                payload: {
+                  method: "GET",
+                  headers: { "Content-Type": "application/json" },
+                  mode: "cors"
+                },
+                silent: true
+              }).then(async task => {
+                if (task.resultCode === 200) {
+                  let serverItemsAfterPulled = task.result
+                  for (const clientItem of clientItems) {
+                    const serverItemAfterPulled = serverItemsAfterPulled.find((itm) => {
+                      return itm.sku === clientItem.sku || itm.sku.indexOf(clientItem.sku + '-') === 0 /* bundle products */
+                    })
+
+                    if (!serverItemAfterPulled) {
+                      dispatch('removeItem', {
+                        product: clientItem
+                      })
+                    }
+                  }
+              }})
+
               Vue.prototype.$bus.$emit('servercart-after-diff', { diffLog: diffLog, serverItems: serverItems, clientItems: clientItems, dryRun: dryRun, event: event }) // send the difflog
               Logger.info('Client/Server cart synchronised ', 'cart', diffLog)()
               return diffLog
@@ -364,6 +391,23 @@ export const cartExtend = {
             async forceSync ({ getters, rootGetters, commit, dispatch }, { forceClientState = true, dryRun = false, pullItemsFromServer = true }) { // force pull current cart FROM the server
               commit(extendTypes.CART_SET_FORCESYNC)
               return dispatch('sync', { forceClientState, dryRun, pullItemsFromServer})
+            },
+            /** remove single item from the server cart by payload.sku or by payload.product.sku @description this method is part of "public" cart API */
+            async removeItem ({ commit, dispatch, getters }, payload) {
+              let removeByParentSku = true // backward compatibility call format
+              let product = payload
+              if (payload.product) { // new call format since 1.4
+                product = payload.product
+                removeByParentSku = payload.removeByParentSku
+              }
+              commit(types.CART_DEL_ITEM, { product, removeByParentSku })
+              if (getters.isCartSyncEnabled && product.server_item_id) {
+                return dispatch('sync', { forceClientState: true })
+              } else {
+                const diffLog = _getDifflogPrototype()
+                diffLog.items.push({ 'party': 'client', 'status': 'no-item', 'sku': product.sku })
+                return diffLog
+              }
             },
           },
           mutations: {
