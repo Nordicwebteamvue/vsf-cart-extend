@@ -392,23 +392,6 @@ export const cartExtend = {
               commit(extendTypes.CART_SET_FORCESYNC)
               return dispatch('sync', { forceClientState, dryRun, pullItemsFromServer})
             },
-            /** remove single item from the server cart by payload.sku or by payload.product.sku @description this method is part of "public" cart API */
-            async removeItem ({ commit, dispatch, getters }, payload) {
-              let removeByParentSku = true // backward compatibility call format
-              let product = payload
-              if (payload.product) { // new call format since 1.4
-                product = payload.product
-                removeByParentSku = payload.removeByParentSku
-              }
-              commit(types.CART_DEL_ITEM, { product, removeByParentSku })
-              if (getters.isCartSyncEnabled && product.server_item_id) {
-                return dispatch('sync', { forceClientState: true })
-              } else {
-                const diffLog = _getDifflogPrototype()
-                diffLog.items.push({ 'party': 'client', 'status': 'no-item', 'sku': product.sku })
-                return diffLog
-              }
-            },
           },
           mutations: {
             [extendTypes.CART_SET_FORCESYNC] (state) {
