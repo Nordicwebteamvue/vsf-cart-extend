@@ -356,6 +356,33 @@ export const cartExtend = {
                 }
                 commit(types.CART_SET_ITEMS_HASH, getters.getCurrentCartHash) // update the cart hash
               }
+
+              // Re-mapping server items to client items one more time.
+              // Delete client items if server items were deleted - freegift or backend automatically deleted item to quote.
+              const task = await TaskQueue.execute({
+                url: config.cart.pull_endpoint, // sync the cart
+                payload: {
+                  method: "GET",
+                  headers: { "Content-Type": "application/json" },
+                  mode: "cors"
+                },
+                silent: true
+              })
+
+              if ( task.result ) {
+                for (const clientItem of clientItems) {
+                  const serverItemAfterPulled = task.result.find((itm) => {
+                    return itm.sku === clientItem.sku || itm.sku.includes(clientItem.sku + '-') /* bundle products */
+                  })
+
+                  if (!serverItemAfterPulled) {
+                    dispatch('removeItem', {
+                      product: clientItem
+                    })
+                  }
+                }
+              }
+
               Vue.prototype.$bus.$emit('servercart-after-diff', { diffLog: diffLog, serverItems: serverItems, clientItems: clientItems, dryRun: dryRun, event: event }) // send the difflog
               Logger.info('Client/Server cart synchronised ', 'cart', diffLog)()
               return diffLog
