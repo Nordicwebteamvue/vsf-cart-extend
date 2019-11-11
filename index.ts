@@ -369,10 +369,10 @@ export const cartExtend = {
                 silent: true
               })
 
-              if ( task.result ) {
+              if (task.result) {
                 for (const clientItem of clientItems) {
-                  const serverItemAfterPulled = task.result.find((itm) => {
-                    return itm.sku === clientItem.sku || itm.sku.includes(clientItem.sku + '-') /* bundle products */
+                  const serverItemAfterPulled = task.result.find((item) => {
+                    return item.sku === clientItem.sku || item.sku.includes(clientItem.sku + '-') /* bundle products */
                   })
 
                   if (!serverItemAfterPulled) {
