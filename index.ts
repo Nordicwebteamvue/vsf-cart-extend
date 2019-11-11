@@ -359,7 +359,7 @@ export const cartExtend = {
 
               // Re-mapping server items to client items one more time.
               // Delete client items if server items were deleted - freegift or backend automatically deleted item to quote.
-              await TaskQueue.execute({
+              const task = await TaskQueue.execute({
                 url: config.cart.pull_endpoint, // sync the cart
                 payload: {
                   method: "GET",
@@ -367,21 +367,21 @@ export const cartExtend = {
                   mode: "cors"
                 },
                 silent: true
-              }).then(async task => {
-                if (task.resultCode === 200) {
-                  let serverItemsAfterPulled = task.result
-                  for (const clientItem of clientItems) {
-                    const serverItemAfterPulled = serverItemsAfterPulled.find((itm) => {
-                      return itm.sku === clientItem.sku || itm.sku.indexOf(clientItem.sku + '-') === 0 /* bundle products */
-                    })
+              })
 
-                    if (!serverItemAfterPulled) {
-                      dispatch('removeItem', {
-                        product: clientItem
-                      })
-                    }
+              if ( task.result ) {
+                for (const clientItem of clientItems) {
+                  const serverItemAfterPulled = task.result.find((itm) => {
+                    return itm.sku === clientItem.sku || itm.sku.includes(clientItem.sku + '-') /* bundle products */
+                  })
+
+                  if (!serverItemAfterPulled) {
+                    dispatch('removeItem', {
+                      product: clientItem
+                    })
                   }
-              }})
+                }
+              }
 
               Vue.prototype.$bus.$emit('servercart-after-diff', { diffLog: diffLog, serverItems: serverItems, clientItems: clientItems, dryRun: dryRun, event: event }) // send the difflog
               Logger.info('Client/Server cart synchronised ', 'cart', diffLog)()
