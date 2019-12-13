@@ -102,6 +102,11 @@ export const cartExtend = {
               // pull current cart FROM the server
               const isUserInCheckout = rootGetters["checkout/isUserInCheckout"]
               let diffLog = _getDifflogPrototype()
+              if (!localStorage.getItem('vsf_processing_add_to_cart')) {
+                localStorage.setItem('vsf_processing_add_to_cart', 'true')
+              } else {
+                return diffLog
+              }
               if (isUserInCheckout) forceClientState = true // never surprise the user in checkout - #
               if (getters.isCartSyncEnabled && getters.isCartConnected) {
                 if (getters.isSyncRequired) {
@@ -142,11 +147,14 @@ export const cartExtend = {
                       }
                     }
                   })
+                  localStorage.removeItem('vsf_processing_add_to_cart')
                   return diffLog
                 } else {
+                  localStorage.removeItem('vsf_processing_add_to_cart')
                   return diffLog
                 }
               } else {
+                localStorage.removeItem('vsf_processing_add_to_cart')
                 return diffLog
               }
             },
